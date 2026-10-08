@@ -1,20 +1,18 @@
 // Offline support. Caches the app's own files after the first visit. No data is ever sent anywhere.
-const VERSION = 'money-v1';
+const VERSION = 'money-v2';
 const FILES = [
   './',
   'index.html',
   'styles.css',
   'manifest.webmanifest',
   'js/calc.js',
-  'js/parse.js',
   'js/store.js',
+  'js/badges.js',
   'js/app.js',
-  'js/vendor/xlsx.full.min.js',
   'icons/icon.svg',
   'icons/icon-192.png',
   'icons/icon-512.png',
   'icons/apple-touch-icon.png',
-  'template/Budget-Template.xlsx',
 ];
 
 self.addEventListener('install', (e) => {

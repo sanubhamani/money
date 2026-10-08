@@ -63,6 +63,7 @@
 
   function budgetSummary(snap) {
     const categories = snap.budget.map((c) => ({
+      id: c.id,
       name: c.name,
       budget: c.budget,
       spent: c.spent,
@@ -137,7 +138,64 @@
       .map((s) => ({ date: s.date, saved: sum(s.goals, 'saved'), spent: sum(s.budget, 'spent') }));
   }
 
-  const api = { CLOSE_AT, parseISO, toISO, daysBetween, categoryStatus, share, pace, budgetSummary, goalSummary, savingsSummary, savingsHistory };
+  // ---------- Typed entries ----------
+  const monthOf = (iso) => String(iso).slice(0, 7);
+
+  function addDays(iso, n) {
+    const d = parseISO(iso);
+    d.setDate(d.getDate() + n);
+    return toISO(d);
+  }
+
+  function prevMonth(iso) {
+    const d = parseISO(iso);
+    return toISO(new Date(d.getFullYear(), d.getMonth() - 1, 1)).slice(0, 7);
+  }
+
+  // Spending for one month only. Each new month starts at zero; budgets carry over.
+  function spentByCategory(entries, month) {
+    const out = {};
+    for (const e of entries) if (monthOf(e.date) === month) out[e.catId] = (out[e.catId] || 0) + e.amount;
+    return out;
+  }
+
+  function monthBudget(data, todayISO) {
+    const spent = spentByCategory(data.entries, monthOf(todayISO));
+    return budgetSummary({
+      date: todayISO,
+      budget: data.categories.map((c) => ({ id: c.id, name: c.name, budget: c.budget, spent: spent[c.id] || 0 })),
+    });
+  }
+
+  // Savings add up across all months, up to and including the given day.
+  function savedByGoal(savings, uptoISO) {
+    const out = {};
+    for (const s of savings) if (!uptoISO || s.date <= uptoISO) out[s.goalId] = (out[s.goalId] || 0) + s.amount;
+    return out;
+  }
+
+  function goals(data, todayISO) {
+    const saved = savedByGoal(data.savings, todayISO);
+    return data.goals.map((g) => ({ id: g.id, ...goalSummary({ name: g.name, target: g.target, saved: saved[g.id] || 0, deadline: g.deadline }, todayISO) }));
+  }
+
+  // Total saved at the end of each of the last few weeks. Starts at the first week with savings.
+  function savingsOverTime(savings, todayISO, weeks = 8) {
+    const points = [];
+    for (let i = weeks - 1; i >= 0; i--) {
+      const date = addDays(todayISO, -7 * i);
+      points.push({ date, saved: savings.reduce((t, s) => t + (s.date <= date ? s.amount : 0), 0) });
+    }
+    const first = points.findIndex((p) => p.saved > 0);
+    return first < 0 ? [] : points.slice(Math.max(0, first - 1));
+  }
+
+  function lastMonthSpent(entries, todayISO) {
+    const m = prevMonth(todayISO);
+    return entries.reduce((t, e) => t + (monthOf(e.date) === m ? e.amount : 0), 0);
+  }
+
+  const api = { monthOf, addDays, prevMonth, spentByCategory, monthBudget, savedByGoal, goals, savingsOverTime, lastMonthSpent, CLOSE_AT, parseISO, toISO, daysBetween, categoryStatus, share, pace, budgetSummary, goalSummary, savingsSummary, savingsHistory };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Calc = api;
 })(typeof self !== 'undefined' ? self : this);

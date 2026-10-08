@@ -1,7 +1,7 @@
 {
   "name": "Money — budget & savings",
   "short_name": "Money",
-  "description": "A private budget and savings dashboard. Your Excel file is read on your device only.",
+  "description": "A private budget and savings dashboard. Type what you spend; your numbers stay on your phone.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

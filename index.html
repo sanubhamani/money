@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Money</title>
-  <meta name="description" content="A private budget and savings dashboard. Your Excel file is read on your device only.">
+  <meta name="description" content="A private budget and savings app. Type what you spend; your numbers stay on your phone.">
   <meta name="theme-color" content="#F6F4EF" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0E0E13" media="(prefers-color-scheme: dark)">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -20,46 +20,46 @@
   <header class="top">
     <div class="brand">
       <h1>Money</h1>
-      <span class="asof" id="asof">As of —</span>
+      <span class="asof" id="month">—</span>
     </div>
-    <button class="icon-btn" id="infoBtn" aria-label="How it works and your data">
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>
-    </button>
+    <button class="text-btn" id="settingsBtn">Settings</button>
   </header>
 
-  <button class="banner" id="sampleBanner" hidden>
-    <span class="banner-tag">Sample</span> Pretend numbers. Upload your Excel to see yours.
+  <p class="banner warn" id="storageBanner" hidden>This browser won’t save your numbers. Private mode may be on.</p>
+  <button class="banner nudge" id="backupBanner" hidden>
+    <span class="banner-tag">Tip</span> Save a backup so you never lose your numbers.
   </button>
-  <p class="banner warn" id="storageBanner" hidden>This browser won’t save your data. Private mode may be on.</p>
 
-  <main class="layout">
+  <main class="layout" id="setup" hidden></main>
+
+  <main class="layout" id="dash" hidden>
     <div class="col">
       <button class="card hero" id="hero"></button>
+      <section class="block" aria-labelledby="spendTitle">
+        <h2 class="section-title" id="spendTitle">Spending <span class="section-hint">Tap to add</span></h2>
+        <div class="cats" id="cats"></div>
+      </section>
       <button class="card pace" id="pace" aria-label="Pace check. Tap for details."></button>
+    </div>
+    <div class="col">
       <section class="block" aria-labelledby="savingsTitle">
         <h2 class="section-title" id="savingsTitle">Savings</h2>
         <div class="goals" id="goals"></div>
-        <div class="card chart-card" id="chart"></div>
+        <div class="card chart-card" id="chart" hidden></div>
       </section>
-    </div>
-    <div class="col">
-      <section class="block" aria-labelledby="spendTitle">
-        <h2 class="section-title" id="spendTitle">Spending</h2>
-        <div class="cats" id="cats"></div>
-      </section>
+      <button class="card badges" id="badges"></button>
       <p class="privacy">
         <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-        Private. Your file never leaves this device. Data doesn’t sync, and clearing browser data erases it.
+        Private. Your numbers stay on this phone and nobody else can see them.
       </p>
     </div>
   </main>
 
-  <div class="dock">
-    <button class="primary" id="uploadBtn">
-      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
-      Update from Excel
+  <div class="dock" hidden>
+    <button class="primary" id="addBtn">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Add spending
     </button>
-    <input type="file" id="fileInput" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
   </div>
 
   <dialog class="sheet" id="sheet" aria-label="Details">
@@ -72,10 +72,9 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="js/vendor/xlsx.full.min.js"></script>
   <script src="js/calc.js"></script>
-  <script src="js/parse.js"></script>
   <script src="js/store.js"></script>
+  <script src="js/badges.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

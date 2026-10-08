@@ -1,50 +1,65 @@
-// Dated snapshots saved on this device only. One snapshot per date; the same date replaces the old one.
+// Everything is saved on this device only, under one key. Backups are a plain file the person keeps.
 (function (root) {
   'use strict';
 
-  const KEY = 'budget.snapshots.v1';
-  const CURRENT = 'budget.current.v1';
+  const KEY = 'money.v2';
+
+  function empty() {
+    return { version: 2, currency: 'PKR', categories: [], goals: [], entries: [], savings: [], meta: { lastBackup: null, setupDone: false } };
+  }
+
+  const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+  const isNum = (n) => typeof n === 'number' && Number.isFinite(n);
+  const isDate = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+  const isStr = (s) => typeof s === 'string' && s.trim() !== '';
+
+  // Checks a loaded backup. Returns clean data or null.
+  function validate(raw) {
+    const d = raw && raw.app === 'money' && raw.data ? raw.data : raw;
+    if (!d || typeof d !== 'object') return null;
+    const arr = (x) => (Array.isArray(x) ? x : null);
+    const cats = arr(d.categories), goals = arr(d.goals), entries = arr(d.entries), savings = arr(d.savings);
+    if (!cats || !goals || !entries || !savings) return null;
+    if (!cats.every((c) => isStr(c.id) && isStr(c.name) && isNum(c.budget) && c.budget >= 0)) return null;
+    if (!goals.every((g) => isStr(g.id) && isStr(g.name) && isNum(g.target) && g.target >= 0 && (g.deadline == null || isDate(g.deadline)))) return null;
+    if (!entries.every((e) => isStr(e.id) && isStr(e.catId) && isNum(e.amount) && e.amount > 0 && isDate(e.date))) return null;
+    if (!savings.every((s) => isStr(s.id) && isStr(s.goalId) && isNum(s.amount) && s.amount > 0 && isDate(s.date))) return null;
+    const out = empty();
+    out.currency = /^[A-Z]{3}$/.test(d.currency) ? d.currency : 'PKR';
+    out.categories = cats.map((c) => ({ id: c.id, name: c.name.trim(), budget: c.budget }));
+    out.goals = goals.map((g) => ({ id: g.id, name: g.name.trim(), target: g.target, deadline: g.deadline || null }));
+    out.entries = entries.map((e) => ({ id: e.id, catId: e.catId, amount: e.amount, date: e.date }));
+    out.savings = savings.map((s) => ({ id: s.id, goalId: s.goalId, amount: s.amount, date: s.date }));
+    out.meta = { lastBackup: (d.meta && d.meta.lastBackup) || null, setupDone: out.categories.length > 0, seenBadges: (d.meta && d.meta.seenBadges) || [] };
+    return out;
+  }
 
   function create(storage) {
-    function readAll() {
-      try { return JSON.parse(storage.getItem(KEY) || '{}') || {}; } catch (e) { return {}; }
-    }
-    function writeAll(all) {
-      storage.setItem(KEY, JSON.stringify(all)); // may throw if storage is full or blocked
-    }
     return {
-      all: readAll,
-      // Returns { replaced: true } when that date already existed.
-      save(snap) {
-        const all = readAll();
-        const replaced = Object.prototype.hasOwnProperty.call(all, snap.date);
-        all[snap.date] = snap; // replace, never add to old totals
-        writeAll(all);
-        storage.setItem(CURRENT, snap.date);
-        return { replaced };
+      load() {
+        try {
+          const raw = storage.getItem(KEY);
+          if (!raw) return empty();
+          return validate(JSON.parse(raw)) || empty();
+        } catch (e) {
+          return empty();
+        }
       },
-      current() {
-        const all = readAll();
-        let d = null;
-        try { d = storage.getItem(CURRENT); } catch (e) { /* ignore */ }
-        if (d && all[d]) return all[d];
-        const dates = Object.keys(all).sort();
-        return dates.length ? all[dates[dates.length - 1]] : null;
-      },
-      remove(date) {
-        const all = readAll();
-        delete all[date];
-        writeAll(all);
-        if (storage.getItem(CURRENT) === date) storage.removeItem(CURRENT);
+      save(data) {
+        storage.setItem(KEY, JSON.stringify(data)); // may throw if storage is full or blocked
       },
       clear() {
         storage.removeItem(KEY);
-        storage.removeItem(CURRENT);
       },
     };
   }
 
-  // In-memory fallback for private browsing or blocked storage.
+  function backupFile(data, todayISO) {
+    const body = JSON.stringify({ app: 'money', version: 2, savedAt: new Date().toISOString(), data }, null, 1);
+    return { name: `money-backup-${todayISO}.json`, body };
+  }
+
   function memoryStorage() {
     const m = new Map();
     return {
@@ -65,5 +80,5 @@
     }
   }
 
-  root.Store = { create, memoryStorage, browserStorage };
+  root.Store = { KEY, empty, newId, validate, create, backupFile, memoryStorage, browserStorage };
 })(typeof self !== 'undefined' ? self : this);
